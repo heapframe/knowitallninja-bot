@@ -96,7 +96,7 @@ def main():
                     for j in i:
                         print(f"clicking {j}")
                         page.evaluate("""
-                            async (targetText) => {
+                            (targetText) => {
                                 const isVisible = (el) => {
                                     if (!el) return false;
                                     const style = window.getComputedStyle(el);
@@ -118,40 +118,6 @@ def main():
                                         return;
                                     }
                                 }
-                                // Fallback: try to fill input inside wpProQuiz_cloze
-                                const tryFillInput = () => {
-                                    const clozeSpans = Array.from(document.querySelectorAll('span.wpProQuiz_cloze'));
-                                    for (const cloze of clozeSpans) {
-                                        const input = cloze.querySelector('input[type="text"]');
-                                        if (isVisible(input)) {
-                                            input.focus();
-                                            input.value = targetText;
-                                            input.dispatchEvent(new Event('input', { bubbles: true }));
-                                            input.dispatchEvent(new Event('change', { bubbles: true }));
-                                            input.blur();
-
-                                            // Click off the input to trigger UI update
-                                            const body = document.querySelector('body');
-                                            if (body) body.click();
-                                            return true;
-                                        }
-                                    }
-                                    return false;
-                                };
-
-                                let attempts = 0;
-                                const maxAttempts = 10;
-                                const delay = ms => new Promise(res => setTimeout(res, ms));
-
-                                const poll = async () => {
-                                    while (attempts < maxAttempts) {
-                                        if (tryFillInput()) return;
-                                        await delay(100);
-                                        attempts++;
-                                    }
-                                };
-
-                                return poll();
                             }
                         """, j)
                     page.evaluate("""
