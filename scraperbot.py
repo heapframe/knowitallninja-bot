@@ -49,14 +49,15 @@ def main():
                     print(f"Navigating to {quizLink}")
 
                     page.goto(quizLink, wait_until="networkidle")
-                    
-                    page.click("input[name='startQuiz']")
-                    quizFileName = quizLink.split("/")[len(quizLink.split("/")) - 2]
-                    if not os.path.exists(f"answers/{quizFileName}.pckl"):
-                        if page.title == 'Page not found - KnowItAll Ninja':
+
+                    if page.title == 'Page not found - KnowItAll Ninja':
                             print("Failed, skipping to next")
                             continue
-
+                        
+                    page.click("input[name='startQuiz']")
+                    
+                    quizFileName = quizLink.split("/")[len(quizLink.split("/")) - 2]
+                    if not os.path.exists(f"answers/{quizFileName}.pckl"):
                         page.evaluate("""
                             () => {
                                 const el = document.querySelector('[name="endQuizSummary"]');
