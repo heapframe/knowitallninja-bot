@@ -1,5 +1,5 @@
 from playwright.sync_api import sync_playwright
-import time
+import time, pickle, os
 
 urls = {
     "login": "https://www.knowitallninja.com/login/?redirect_to=%2Fdashboard%2F",
@@ -34,102 +34,124 @@ def main():
             "a", "elements => elements.map(el => el.href)"
         )
 
-        for link in links:
-            if "https://www.knowitallninja.com/dashboard/lessons/" in link:
-                quizLink = link.replace("lessons", "quizzes")
-                print(f"Navigating to {quizLink}")
+        courses = [l for l in links if l.startswith("https://www.knowitallninja.com/dashboard/courses/")]
 
-                page.goto(quizLink, wait_until="networkidle")
-                
-                page.click("input[name='startQuiz']")
+        for course in courses:
+            page.goto(course, wait_until="networkidle")
 
-                page.evaluate("""
-                    () => {
-                        const el = document.querySelector('[name="endQuizSummary"]');
-                        if (el) el.click();
-                    }
-                """)
-                
-                page.wait_for_load_state('networkidle')
+            links = page.eval_on_selector_all(
+                "a", "elements => elements.map(el => el.href)"
+            )
+            print(f"{'-'*10} DOING COURSE {course} {'-'*10}")
+            for link in links:
+                if "https://www.knowitallninja.com/dashboard/lessons/" in link:
+                    quizLink = link.replace("lessons", "quizzes")
+                    print(f"Navigating to {quizLink}")
 
-                page.click("input[name='reShowQuestion']")
+                    page.goto(quizLink, wait_until="networkidle")
+                    
+                    page.click("input[name='startQuiz']")
+                    quizFileName = quizLink.split("/")[len(quizLink.split("/")) - 2]
+                    if not os.path.exists(f"answers/{quizFileName}.pckl"):
+                        if page.title == 'Page not found - KnowItAll Ninja':
+                            print("Failed, skipping to next")
+                            continue
 
-                answers = page.evaluate("""
-                () => {
-                    const ol = document.querySelector('ol.wpProQuiz_list');
-                    if (!ol) return [];
+                        page.evaluate("""
+                            () => {
+                                const el = document.querySelector('[name="endQuizSummary"]');
+                                if (el) el.click();
+                            }
+                        """)
 
-                    const data = [];
+                        page.wait_for_load_state('networkidle')
 
-                    ol.querySelectorAll('li').forEach(li => {
-                        const questionContent = li.querySelector('div.kian-quiz-question-content');
-                        if (!questionContent) return;
+                        page.click("input[name='reShowQuestion']")
 
-                        const questionFieldset = questionContent.querySelector('fieldset.wpProQuiz_question');
-                        if (!questionFieldset) return;
+                        answers = page.evaluate("""
+                        () => {
+                        const ol = document.querySelector('ol.wpProQuiz_list');
+                        if (!ol) return [];
 
-                        const questionList = questionFieldset.querySelector('div.wpProQuiz_questionList');
-                        if (!questionList) return;
+                        const data = [];
 
-                        const answerDivs = questionList.querySelectorAll('div.wpProQuiz_answerCorrectIncomplete');
+                        ol.querySelectorAll('li').forEach(li => {
+                            const questionContent = li.querySelector('div.kian-quiz-question-content');
+                            if (!questionContent) return;
 
-                        // Collect text or any other info you want from each answer div
-                        const answers = [];
-                        answerDivs.forEach(div => {
-                            answers.push(div.innerText.trim());
+                            const questionFieldset = questionContent.querySelector('fieldset.wpProQuiz_question');
+                            if (!questionFieldset) return;
+
+                            const questionList = questionFieldset.querySelector('div.wpProQuiz_questionList');
+                            if (!questionList) return;
+
+                            const answerDivs = questionList.querySelectorAll('div.wpProQuiz_answerCorrectIncomplete');
+
+                            // Collect text or any other info you want from each answer div
+                            const answers = [];
+                            answerDivs.forEach(div => {
+                                answers.push(div.innerText.trim());
+                            });
+
+                            data.push(answers);
                         });
 
-                        data.push(answers);
-                    });
+                        return data;
+                        }
+                        """)
+                        x = "fjqo"
+                        with open(f"answers/{quizFileName}.pckl", "wb") as f:
+                            pickle.dump(answers, f)
+                        page.goto(quizLink, wait_until="networkidle")
 
-                    return data;
-                }
-                """)
+                    else:
+                        answers = []
+                        print("Using memorised answers")
+                        with open(f"answers/{quizFileName}.pckl", "rb") as f:
+                            answers = pickle.load(f)
 
-                #print(answers)
-                
-                page.goto(quizLink, wait_until="networkidle")
-                
-                page.click("input[name='startQuiz']")
-                for i in answers:
-                    time.sleep(1)
-                    for j in i:
-                        print(f"clicking {j}")
-                        page.evaluate("""
-                            (targetText) => {
-                                const isVisible = (el) => {
-                                    if (!el) return false;
-                                    const style = window.getComputedStyle(el);
-                                    const rect = el.getBoundingClientRect();
-                                    return (
-                                        style.display !== 'none' &&
-                                        style.visibility !== 'hidden' &&
-                                        style.opacity !== '0' &&
-                                        rect.width > 0 &&
-                                        rect.height > 0
-                                    );
-                                };
+                    #print(answers)
 
-                                // Try to click matching label
-                                const labels = Array.from(document.querySelectorAll('label'));
-                                for (const label of labels) {
-                                    if (label.textContent.includes(targetText) && isVisible(label)) {
-                                        label.click();
-                                        return;
+                    #page.click("input[name='startQuiz']")
+                    for i in answers:
+                        time.sleep(1)
+                        for j in i:
+                            print(f"clicking {j}")
+                            page.evaluate("""
+                                (targetText) => {
+                                    const isVisible = (el) => {
+                                        if (!el) return false;
+                                        const style = window.getComputedStyle(el);
+                                        const rect = el.getBoundingClientRect();
+                                        return (
+                                            style.display !== 'none' &&
+                                            style.visibility !== 'hidden' &&
+                                            style.opacity !== '0' &&
+                                            rect.width > 0 &&
+                                            rect.height > 0
+                                        );
+                                    };
+
+                                    // Try to click matching label
+                                    const labels = Array.from(document.querySelectorAll('label'));
+                                    for (const label of labels) {
+                                        if (label.textContent.includes(targetText) && isVisible(label)) {
+                                            label.click();
+                                            return;
+                                        }
                                     }
                                 }
+                            """, j)
+                        page.evaluate("""
+                            () => {
+                                const el = document.querySelector('[name="next"]');
+                                if (el) el.click();
                             }
-                        """, j)
-                    page.evaluate("""
-                        () => {
-                            const el = document.querySelector('[name="next"]');
-                            if (el) el.click();
-                        }
-                    """)
+                        """)
 
-                page.click("input[name='endQuizSummary']")
-                page.wait_for_load_state('networkidle')
-                time.sleep(2)
+                    page.click("input[name='endQuizSummary']")
+                    page.wait_for_load_state('networkidle')
+                    time.sleep(2)
 
         browser.close()
 
