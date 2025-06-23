@@ -50,7 +50,7 @@ def main():
 
                     page.goto(quizLink, wait_until="networkidle")
 
-                    if page.title == 'Page not found - KnowItAll Ninja':
+                    if page.title() == 'Page not found - KnowItAll Ninja':
                             print("Failed, skipping to next")
                             continue
                         
