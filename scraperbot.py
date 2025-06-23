@@ -6,6 +6,11 @@ urls = {
     "targetCourse": "https://www.knowitallninja.com/dashboard/courses/exploring-user-interface-design-principles/"
 }
 
+delaySettings = {
+    "timeBetweenQuestions": 5,
+    "timeBetweenQuizzes": 60
+}
+
 def main():
     login = ["", ""]
     with open("login") as f:
@@ -47,6 +52,7 @@ def main():
             for link in links:
                 if "https://www.knowitallninja.com/dashboard/lessons/" in link:
                     quizLink = link.replace("lessons", "quizzes")
+                    #TODO: test https://www.knowitallninja.com/dashboard/quizzes/methodologies/
                     #quizLink = "https://www.knowitallninja.com/dashboard/quizzes/skill-level-demographics/" # for specifc testing
                     print(f"Navigating to {quizLink}")
 
@@ -133,7 +139,7 @@ def main():
 
                     #page.click("input[name='startQuiz']")
                     for i in answers:
-                        time.sleep(1)
+                        time.sleep(delaySettings.get("timeBetweenQuestions"))
                         if i != []:
                             for j in i:
                                 print(f"clicking {j}")
@@ -235,7 +241,7 @@ def main():
 
                     page.click("input[name='endQuizSummary']")
                     page.wait_for_load_state('networkidle')
-                    time.sleep(2)
+                    time.sleep(delaySettings.get("timeBetweenQuizzes"))
 
         browser.close()
 
