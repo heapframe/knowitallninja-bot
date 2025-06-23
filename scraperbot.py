@@ -1,4 +1,4 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 import time, pickle, os
 
 urls = {
@@ -53,8 +53,12 @@ def main():
                     if page.title() == 'Page not found - KnowItAll Ninja':
                             print("Failed, skipping to next")
                             continue
-                        
-                    page.click("input[name='startQuiz']")
+                    
+                    try:
+                        page.click("input[name='startQuiz']")
+                    except PlaywrightTimeoutError:
+                        print("Timeout: 'Start Quiz' button not found, skipping this quiz.")
+                        continue 
                     
                     quizFileName = quizLink.split("/")[len(quizLink.split("/")) - 2]
                     if not os.path.exists(f"answers/{quizFileName}.pckl"):
@@ -94,17 +98,29 @@ def main():
                                 answers.push(div.innerText.trim());
                             });
 
+                            if (answers.length === 0) {
+                                const clozeSpans = li.querySelectorAll('.ld-quiz__cloze-results--correct-answer');
+                                clozeSpans.forEach(span => {
+                                    const content = span.textContent.trim();
+                                    if (content.startsWith('(') && content.endsWith(')')) {
+                                        const opts = content.slice(1, -1).split(',');
+                                        if (opts.length > 0) answers.push(opts[0]); // pick first valid synonym
+                                    } else if (content.length > 0) {
+                                        answers.push(content);
+                                    }
+                                });
+                            }
+
                             data.push(answers);
                         });
 
                         return data;
                         }
                         """)
-                        x = "fjqo"
                         with open(f"answers/{quizFileName}.pckl", "wb") as f:
                             pickle.dump(answers, f)
                         page.goto(quizLink, wait_until="networkidle")
-
+                        page.click("input[name='startQuiz']")
                     else:
                         answers = []
                         print("Using memorised answers")
@@ -119,7 +135,7 @@ def main():
                         for j in i:
                             print(f"clicking {j}")
                             page.evaluate("""
-                                (targetText) => {
+                                async (targetText) => {
                                     const isVisible = (el) => {
                                         if (!el) return false;
                                         const style = window.getComputedStyle(el);
@@ -133,12 +149,33 @@ def main():
                                         );
                                     };
 
+                                    const highlight = (el) => {
+                                        const originalBorder = el.style.border;
+                                        el.style.border = '3px solid red';
+                                        setTimeout(() => {
+                                            el.style.border = originalBorder;
+                                        }, 3000);
+                                    };
+
+                                    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
                                     // Try to click matching label
                                     const labels = Array.from(document.querySelectorAll('label'));
                                     for (const label of labels) {
                                         if (label.textContent.includes(targetText) && isVisible(label)) {
                                             label.click();
                                             return;
+                                        } else if (label.querySelector('input[type="text"]')) {
+                                            const tb = label.querySelector('input[type="text"]');
+                                            if (tb && !isVisible(tb)) {
+                                                delay(1000);
+                                            }
+                                            if (isVisible(tb)) {
+                                                tb.focus();
+                                                highlight(tb);
+                                                tb.value = targetText;
+                                                tb.dispatchEvent(new Event('input', { bubbles: true }));
+                                            }
                                         }
                                     }
                                 }
