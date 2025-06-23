@@ -11,6 +11,9 @@ delaySettings = {
     "timeBetweenQuizzes": 60
 }
 
+if not os.path.isdir("answers"):
+    os.mkdir("answers")
+
 def main():
     login = ["", ""]
     with open("login") as f:
