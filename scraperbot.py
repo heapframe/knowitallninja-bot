@@ -1,5 +1,5 @@
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-import time, pickle, os
+import time, pickle, os, random
 
 urls = {
     "login": "https://www.knowitallninja.com/login/?redirect_to=%2Fdashboard%2F",
@@ -7,8 +7,9 @@ urls = {
 }
 
 delaySettings = {
-    "timeBetweenQuestions": 5,
-    "timeBetweenQuizzes": 60
+    "timeBetweenQuestions": 20,
+    "timeBetweenQuizzes": 60,
+    "delayJitter" : 5
 }
 
 if not os.path.isdir("answers"):
@@ -23,7 +24,7 @@ def main():
     print(f"Using {login[0]}:{'*'*len(login[1])}")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False,
+        browser = p.chromium.launch(headless=True,
         executable_path="/home/rajaa/.cache/ms-playwright/chromium-1161/chrome-linux/chrome")
         context = browser.new_context(viewport={"width": 1920, "height": 1080})
         page = context.new_page()
@@ -44,14 +45,14 @@ def main():
         )
 
         courses = [l for l in links if l.startswith("https://www.knowitallninja.com/dashboard/courses/")]
-
+        
         for course in courses:
             page.goto(course, wait_until="networkidle")
 
             links = page.eval_on_selector_all(
                 "a", "elements => elements.map(el => el.href)"
             )
-            print(f"{'-'*10} DOING COURSE {course} {'-'*10}")
+            #print(f"{'-'*10} DOING COURSE {course} {'-'*10}")
             for link in links:
                 if "https://www.knowitallninja.com/dashboard/lessons/" in link:
                     quizLink = link.replace("lessons", "quizzes")
@@ -138,14 +139,14 @@ def main():
                         with open(f"answers/{quizFileName}.pckl", "rb") as f:
                             answers = pickle.load(f)
 
-                    print(answers)
+                    #print(answers)
 
                     #page.click("input[name='startQuiz']")
                     for i in answers:
-                        time.sleep(delaySettings.get("timeBetweenQuestions"))
+                        time.sleep(delaySettings.get("timeBetweenQuestions") + random.randint(-delaySettings.get("delayJitter"), -delaySettings.get("delayJitter")))
                         if i != []:
                             for j in i:
-                                print(f"clicking {j}")
+                                #print(f"\rclicking {j}\r", end="")
                                 page.evaluate("""
                                     async (targetText) => {
                                         const isVisible = (el) => {
@@ -240,11 +241,16 @@ def main():
                                 if (el) el.click();
                             }
                         """)
-                        print("-"*10)
+                        #print("-"*10)
 
                     page.click("input[name='endQuizSummary']")
                     page.wait_for_load_state('networkidle')
-                    time.sleep(delaySettings.get("timeBetweenQuizzes"))
+                    page.wait_for_selector(".kian-quiz-result-progress-percentage")
+                    score = page.query_selector(".kian-quiz-result-progress-percentage").inner_text().removesuffix("%")
+                    if (float(score)) != 100.00:
+                        print(f"!!! Got percentage {score}% on {quizLink}")
+                    time.sleep(delaySettings.get("timeBetweenQuizzes") + random.randint(-delaySettings.get("delayJitter"), -delaySettings.get("delayJitter")))
+                    print("-"*20)
 
         browser.close()
 
