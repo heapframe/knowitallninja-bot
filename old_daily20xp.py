@@ -1,5 +1,5 @@
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-import time, pickle, os, random, datetime, sys, subprocess
+import time, pickle, os, random, datetime, sys
 
 urls = {
     "login": "https://www.knowitallninja.com/login/?redirect_to=%2Fdashboard%2F",
@@ -13,7 +13,7 @@ delaySettings = {
 }
 
 speedRunMode = True
-speedRunFactor = 15
+speedRunFactor = 10
 
 if speedRunMode:
     delaySettings = {
@@ -34,31 +34,6 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-
-
-################################################################################################################
-
-class Tee:
-    def __init__(self, *streams):
-        self.streams = streams
-
-    def write(self, data):
-        for s in self.streams:
-            s.write(data)
-            s.flush()
-
-    def flush(self):
-        for s in self.streams:
-            s.flush()
-
-if os.path.exists("log-daily20xp.txt"):
-    os.remove("log-daily20xp.txt")
-
-logfile = open("log-daily20xp.txt", "w")
-sys.stdout = Tee(sys.__stdout__, logfile)
-sys.stderr = Tee(sys.__stderr__, logfile)
-
-
 if not os.path.isdir("answers"):
     os.mkdir("answers")
 
@@ -73,8 +48,8 @@ def main():
     startTime = time.time()
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        #executable_path="/home/rajaa/.cache/ms-playwright/chromium-1161/chrome-linux/chrome")
+        browser = p.chromium.launch(headless=False,
+        executable_path="/home/rajaa/.cache/ms-playwright/chromium-1161/chrome-linux/chrome")
         context = browser.new_context(viewport={"width": 1920, "height": 1080})
         page = context.new_page()
         page.goto(urls.get("login"), wait_until="networkidle")
@@ -111,34 +86,10 @@ def main():
 
                         page.goto("https://www.knowitallninja.com/dashboard/", wait_until="networkidle")
                         elements = page.query_selector_all(".claim-points")
-
-                        all_divs_correct = page.evaluate("""
-                        () => {
-                            const parent = document.getElementsByClassName("kian-user-challenges")[0];
-                            if (!parent) return false;
-                        
-                            const divs = Array.from(parent.children).filter(child => child.tagName === "DIV");
-                        
-                            return divs.every(div =>
-                                div.classList.contains("challenge-display") &&
-                                div.classList.contains("kian-gray-box") &&
-                                div.classList.contains("success")
-                            );
-                        }
-                        """)
-
-                        if len(elements) >= 2:
+                        if len(elements) == 2:
                             for i in elements:
                                 i.click()
-                            print(f"SUCESSS (claimed {len(elements)} rewards)")
-                            print("-"*20,f"Ran for {round(int(time.time() - startTime)/60, 2)}m current time {datetime.datetime.now()}", "-"*20)
-                            browser.close()
-                            sys.exit(0)
-                        elif all_divs_correct:
-                            print("SUCESSS (all divs fully ticked)")
-                            print("-"*20,f"Ran for {round(int(time.time() - startTime)/60, 2)}m current time {datetime.datetime.now()}", "-"*20)
-                            browser.close()
-                            sys.exit(0)
+                                sys.exit(0)
                         
                         quizLink = link.replace("lessons", "quizzes")
                         #quizLink = "https://www.knowitallninja.com/dashboard/quizzes/skill-level-demographics/" # for specifc testing
@@ -342,8 +293,7 @@ def main():
                             print(bcolors.WARNING, f"[!] Got percentage {score}% on {quizLink}", bcolors.ENDC)
                         time.sleep(delaySettings.get("timeBetweenQuizzes") + random.randint(-delaySettings.get("delayJitter"), -delaySettings.get("delayJitter")))
                         print("-"*20,f"Ran for {round(int(time.time() - startTime)/60, 2)}m current time {datetime.datetime.now()}", "-"*20)
-            except Exception as e:
-                print(e)
+            except:
                 print(bcolors.FAIL, f"[!!!] Failed to do course {course}", bcolors.ENDC)    
 
         browser.close()
