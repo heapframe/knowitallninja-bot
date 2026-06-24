@@ -1,4 +1,6 @@
 # KnowItAll Ninja — Quiz Automation Bot
+> [!NOTE]
+> **Archived:** I've finished secondary schooling and can no longer provide updates to this tool.
 
 A browser automation tool that scrapes, caches, and replays quiz answers on the [KnowItAll Ninja](https://www.knowitallninja.com) e-learning platform, with a secondary mode for automated daily XP reward farming via cron.
 
