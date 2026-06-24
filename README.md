@@ -81,7 +81,7 @@ playwright install chromium
 python scraperbot.py
 ```
 
-This will discover every quiz across all courses, scrape correct answers for any not yet cached, and replay them for a 100% score. Already-cached quizzes are replayed directly without a scrape pass.
+This will discover every quiz across all courses, scrape correct answers for any not yet cached, and replay them for a 100% score. Already-cached quizzes are replayed directly without a scrape pass. + You can run this after the first pass for a maxxed out score on everything, obliterating everyone else on the leaderboard
 
 **Step 2 — Run the daily XP farmer:**
 

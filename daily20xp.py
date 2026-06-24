@@ -5,7 +5,7 @@ I suggest running this from cron daily on a server.
 
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 import time, pickle, os, random, datetime, sys, json
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict
 
 urls = {
     "login": "https://www.knowitallninja.com/login/?redirect_to=%2Fdashboard%2F",
