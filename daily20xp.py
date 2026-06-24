@@ -1,3 +1,8 @@
+"""
+This script is designed to do just enough tasks to be elligible for the daily rewards system on knowitallninja and claim them.
+I suggest running this from cron daily on a server.
+"""
+
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 import time, pickle, os, random, datetime, sys, json
 from pydantic import BaseModel, Field, ConfigDict, field_validator
