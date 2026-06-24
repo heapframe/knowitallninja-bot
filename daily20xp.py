@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-import time, pickle, os, random, datetime, sys
+import time, pickle, os, random, datetime, sys, json
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 urls = {
     "login": "https://www.knowitallninja.com/login/?redirect_to=%2Fdashboard%2F",
@@ -33,29 +34,37 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+class Login(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    username: str
+    password: str
 
 if not os.path.isdir("answers"):
     os.mkdir("answers")
 
 def main():
-    login = ["", ""]
-    with open("login") as f:
-        login[0] = f.readline().strip()
-        login[1] = f.readline().strip()
+    with open("login.json", "r") as f:
+        login_json = json.load(f)
 
-    print(f"Using {login[0]}:{'*'*len(login[1])}")
+    login = Login.model_validate(login_json)
+
+    if login.username == "i didnt read the readme and never changed this":
+        print(f"Pretty funny username you got there, '{login.username}'")
+        print(f"Make sure to put your login details in {os.getcwd()}/login.json() as the bot needs to login as you to act on your behalf.")
+        return
+
+    print(f"Using {login.username}:{'*'*len(login.password)}")
 
     startTime = time.time()
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False,
-        executable_path="/home/rajaa/.cache/ms-playwright/chromium-1161/chrome-linux/chrome")
+        browser = p.chromium.launch(headless=False)
         context = browser.new_context(viewport={"width": 1920, "height": 1080})
         page = context.new_page()
         page.goto(urls.get("login"), wait_until="networkidle")
 
-        page.fill("#user_login", login[0])
-        page.fill("#user_pass", login[1])
+        page.fill("#user_login", login.username)
+        page.fill("#user_pass", login.password)
 
         with page.expect_navigation():
             page.click('button[name="submit"]')
