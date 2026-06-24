@@ -50,8 +50,18 @@ def main():
 
     if login.username == "i didnt read the readme and never changed this":
         print(f"Pretty funny username you got there, '{login.username}'")
-        print(f"Make sure to put your login details in {os.getcwd()}/login.json() as the bot needs to login as you to act on your behalf.")
-        return
+        print(f"Make sure to put your login details in {os.getcwd()}/login.json as the bot needs to login as you to act on your behalf.")
+        if input("Would you like to populate the login file now? (Y/n)").lower().strip() != "n":
+            logindetails = {
+                "username": input("Username/email: ").strip(),
+                "password": input("password: ").strip()
+            }
+            with open("login.json", "w") as f:
+                json.dump(logindetails, f, indent=2)
+            login = Login.model_validate(logindetails)
+        else:
+            print("Exiting...")
+            return
 
     print(f"Using {login.username}:{'*'*len(login.password)}")
 
